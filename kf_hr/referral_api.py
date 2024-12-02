@@ -1,36 +1,42 @@
 from __future__ import unicode_literals
-from frappe.model.document import Document
-import frappe
+
 import json
-from frappe.utils.user import get_user_fullname
-import requests
-from frappe.utils import cint, cstr, flt, formatdate, getdate, now, today
+
+import frappe
+from frappe.utils import cint, getdate, today
 
 
-# #login API
 @frappe.whitelist(allow_guest=True)
 def login_api(data=None):
+	'''API for user login
+	   request body:
+			username : username/email of the user
+			username : user password
+	'''
 	data = json.loads(frappe.request.data)
-	url = "http://hr.kfcommunity.com/api/method/login"
 	username = data.get("username")
 	password = data.get("password")
-	# return username, password
-	response=requests.post(url, data={"usr":username, "pwd":password})
-	if response.status_code == 200:
-		response_text = json.loads(response.text)
-		user = frappe.db.get_value("User", {"Username":data.get("username")}, "name")
-		roles = frappe.get_roles(user)
-		emp = frappe.db.get_values("KF Employee Master", {"user_id":user}, ["department", "branch", 'name'])
-		response_text["roles"] = roles
-		response_text["department"] = emp[0][0] if emp else ""
-		response_text["branch"] = emp[0][1] if emp else ""
-		response_text["employee_id"] = emp[0][2] if emp else ""
-		response_text["username"] = data.get("username")
-		response_text["email"] = user
-		return {"status_code":200, "success":True, "error":"", "data":response_text}
-		# return response_text
-	else:
+	try:
+		login_manager = frappe.auth.LoginManager()
+		login_manager.authenticate(user=username, pwd=password)
+		login_manager.post_login()
+	except frappe.exceptions.AuthenticationError:
 		return {"status_code":401, "success":False, "error":"Invalid Username or Password"}
+
+	user = frappe.get_doc("User", frappe.session.user)
+	roles = frappe.get_roles(frappe.session.user)
+
+	response_text = {"message": "Logged In", "home_page":"/app", "full_name":user.full_name}
+	user = frappe.db.get_value("User", {"Username":data.get("username")}, "name")
+	roles = frappe.get_roles(user)
+	emp = frappe.db.get_values("KF Employee Master", {"user_id":user}, ["department", "branch", 'name'])
+	response_text["roles"] = roles
+	response_text["department"] = emp[0][0] if emp else ""
+	response_text["branch"] = emp[0][1] if emp else ""
+	response_text["employee_id"] = emp[0][2] if emp else ""
+	response_text["username"] = data.get("username")
+	response_text["email"] = user
+	return {"status_code":200, "success":True, "error":"", "data":response_text}
 
 
 
@@ -104,12 +110,12 @@ def get_all_referral_form():
 		return {"status_code":401, "success":False, "error":e}
 
 def get_filters_codition(data):
-        conditions = "1=1"
-        if data.get("referral_number"):
-            conditions += " and name = '{0}'".format(data.get('referral_number'))
-        if data.get("date"):
-            conditions += " and date = '{0}'".format(getdate(data.get('date')))
-        return conditions
+		conditions = "1=1"
+		if data.get("referral_number"):
+			conditions += " and name = '{0}'".format(data.get('referral_number'))
+		if data.get("date"):
+			conditions += " and date = '{0}'".format(getdate(data.get('date')))
+		return conditions
 
 
 @frappe.whitelist(allow_guest=True)
@@ -149,12 +155,12 @@ def referral_from_list():
 
 
 def referral_form_list_filters_codition(data):
-        conditions = "1=1"
-        if data.get("workflow_state"):
-            conditions += " and workflow_state = '{0}'".format(data.get('status'))
-        if data.get("department_name"):
-            conditions += " and department_name = '{0}'".format(data.get('department_name'))
-        return conditions
+		conditions = "1=1"
+		if data.get("workflow_state"):
+			conditions += " and workflow_state = '{0}'".format(data.get('status'))
+		if data.get("department_name"):
+			conditions += " and department_name = '{0}'".format(data.get('department_name'))
+		return conditions
 
 @frappe.whitelist(allow_guest=True)
 def employee_list_api():
