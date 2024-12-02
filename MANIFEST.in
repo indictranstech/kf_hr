@@ -1,0 +1,18 @@
+include MANIFEST.in
+include requirements.txt
+include *.json
+include *.md
+include *.py
+include *.txt
+recursive-include kf_hr *.css
+recursive-include kf_hr *.csv
+recursive-include kf_hr *.html
+recursive-include kf_hr *.ico
+recursive-include kf_hr *.js
+recursive-include kf_hr *.json
+recursive-include kf_hr *.md
+recursive-include kf_hr *.png
+recursive-include kf_hr *.py
+recursive-include kf_hr *.svg
+recursive-include kf_hr *.txt
+recursive-exclude kf_hr *.pyc
